@@ -1,26 +1,87 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <!-- TODO: Set the document title to the name of your application -->
-    <title>Lovable App</title>
-    <meta name="description" content="Lovable Generated Project" />
-    <meta name="author" content="Lovable" />
+<head>
+    <meta charset="UTF-8">
+    <title>CSV File Dropper</title>
+</head>
+<body>
 
-    <!-- TODO: Update og:title to match your application name -->
-    <meta property="og:title" content="Lovable App" />
-    <meta property="og:description" content="Lovable Generated Project" />
-    <meta property="og:type" content="website" />
-    <meta property="og:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
+    <h2>Prediction of CSV Dataset</h2>
+    
+    <input type="file" id="csvPicker" accept=".csv">
 
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@Lovable" />
-    <meta name="twitter:image" content="https://lovable.dev/opengraph-image-p98pqg.png" />
-  </head>
+    <button id="PredictionBtn">Create Prediction</button>
 
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
-</html>
+    <div id="results"></div>
+
+    <script>
+        document.getElementById('PredictionBtn').addEventListener('click', async () => {
+            const file = document.getElementById('csvPicker').files[0];
+            if (!file) {
+                alert('Please select a CSV file');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('product_var_name', 'Item');
+            formData.append('date_var_name', 'Transaction Date');
+
+            try {
+                const response = await fetch('https://ambatucode.vercel.app/train-model', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) throw new Error('API request failed');
+                const train_data = await response.json();
+                alert('Training completed successfully');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to train model. Check console for details.');
+            }
+
+            try {
+                const response = await fetch('https://ambatucode.vercel.app/predict-recommendation', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) throw new Error('API request failed');
+                const result = await response.json();
+                displayTable(result.recommendations);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to get predictions. Check console for details.');
+            }
+        });
+
+        function displayTable(data) {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            if (!Array.isArray(data) || data.length === 0) {
+                results.textContent = 'No predictions to display';
+                return;
+            }
+            const table = document.createElement('table');
+            table.style.borderCollapse = 'collapse';
+            table.style.width = '100%';
+            const header = table.insertRow();
+            Object.keys(data[0]).forEach(key => {
+                const th = document.createElement('th');
+                th.textContent = key;
+                th.style.border = '1px solid #ddd';
+                th.style.padding = '8px';
+                th.style.backgroundColor = '#f2f2f2';
+                header.appendChild(th);
+            });
+            data.forEach(row => {
+                const tr = table.insertRow();
+                Object.values(row).forEach(val => {
+                    const td = document.createElement('td');
+                    td.textContent = val;
+                    td.style.border = '1px solid #ddd';
+                    td.style.padding = '8px';
+                    tr.appendChild(td);
+                });
+            });
+            results.appendChild(table);
+        }
+    </script>
