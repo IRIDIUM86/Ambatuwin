@@ -15,6 +15,37 @@
     <div id="results"></div>
 
     <script>
+        // Mapping for Item codes to names (based on the data processing)
+        const itemMapping = [
+            "Cake",
+            "Cake/Juice",
+            "Coffee",
+            "Cookie",
+            "Juice",
+            "Salad",
+            "Sandwich",
+            "Sandwich/Smoothie",
+            "Smoothie",
+            "Tea"
+        ];
+
+        const intToString = (value, mapping) => {
+            if (mapping == null) return value;
+            if (Array.isArray(mapping)) {
+                if (typeof value === 'number' && value > 0) {
+                    const index = value - 1;
+                    if (index >= 0 && index < mapping.length) {
+                        return mapping[index];
+                    }
+                }
+                return value;
+            }
+            if (typeof mapping === 'object') {
+                return mapping.hasOwnProperty(value) ? mapping[value] : value;
+            }
+            return value;
+        };
+
         document.getElementById('PredictionBtn').addEventListener('click', async () => {
             const file = document.getElementById('csvPicker').files[0];
             if (!file) {
@@ -51,7 +82,19 @@
                 console.error('Error:', error);
                 alert('Failed to get predictions. Check console for details.');
             }
+
+            // Automatically delete the models after prediction
+            try {
+                const response = await fetch('https://ambatucode.vercel.app/delete-models-dir', {
+                    method: 'POST'
+                });
+                if (!response.ok) throw new Error('API request failed');
+                console.log('Models directory deleted successfully.');
+            } catch (error) {
+                console.error('Error deleting models:', error);
+            }
         });
+
 
         function displayTable(data) {
             const results = document.getElementById('results');
@@ -74,9 +117,10 @@
             });
             data.forEach(row => {
                 const tr = table.insertRow();
-                Object.values(row).forEach(val => {
+                Object.entries(row).forEach(([key, val]) => {
                     const td = document.createElement('td');
-                    td.textContent = val;
+                    const displayVal = key === 'recommended_product' ? intToString(val, itemMapping) : val;
+                    td.textContent = displayVal;
                     td.style.border = '1px solid #ddd';
                     td.style.padding = '8px';
                     tr.appendChild(td);
@@ -84,4 +128,5 @@
             });
             results.appendChild(table);
         }
+
     </script>
