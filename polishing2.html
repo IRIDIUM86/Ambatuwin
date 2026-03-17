@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV File Dropper</title>
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <style>
+
+    h2{text-align: center;}
+
+    .center{
+        display: flex;
+        justify-content: center;
+        margin-top:20px;
+
+
+    }
+
+    #MTloading, #Ploading, #loading {
+        display: none;
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        padding: 20px;
+        background: rgba(0,0,0,0.8);
+        color: white;
+        border-radius: 8px;
+        z-index: 1000;
+    }
+    
+
+    .droparea{
+         margin: 1rem auto;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        width: 384px;
+        max-width: 100%;
+        height: 160px;
+        border: 4px dashed grey;
+        border-radius: 15px;
+        cursor: pointer;
+
+    }
+
+    </style>
+
+
+</head>
+<body style = "background-color:linen">
+<header style = "background-color: pink;" >    
+    <br>    
+    <h2 >Prediction of CSV Dataset</h2>
+    <br>    
+    
+</header>
+
+    
+    <br>
+    <input type="file" id="csvPicker" accept=".csv" style="display:none;">
+
+    <div id="fileNameDisplay" style="text-align:center; margin-bottom:10px; font-weight:bold;">
+        No file selected
+    </div>
+
+    <section class="droparea" id = "dropbox">
+        <i class ="far fa-images">        </i>
+            <p> Drop CSV files here!</p>
+            <p><small>one file ONLY </small></p>
+
+    </section>
+
+    <div class = "center">    
+        <button id="PredictionBtn" > 
+            Create Prediction
+        </button>
+    </div>
+    <br>
+    <br>
+    <div id="results"></div>
+    <h5 class = "center"> This program provides users with predictive analysis results </h5>
+    <h5 class = "center"> based on given dataset for smart decision making </h5>
+
+
+ 
+    <div id="loading">Loading...</div>
+    <div id="MTloading">Machine is Training Model...</div>
+    <div id="Ploading">Prediction is being generated...</div>
+
+
+    <script>
+
+        //dropbox function
+        const dropbox = document.getElementById("dropbox");
+        const fileInput = document.getElementById("csvPicker");
+
+        dropbox.addEventListener("click", () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener("change", () => {
+            if (fileInput.files.length > 0) {
+            document.getElementById("fileNameDisplay").textContent =
+                fileInput.files[0].name + " (✓)";
+            }
+        });
+
+        // Highlight when dragging
+        dropbox.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            dropbox.style.borderColor = "blue";
+        });
+
+        // Remove highlight
+        dropbox.addEventListener("dragleave", () => {
+        dropbox.style.borderColor = "grey";
+        });
+
+        // Handle file drop
+        dropbox.addEventListener("drop", (e) => {
+            e.preventDefault();
+            dropbox.style.borderColor = "grey";
+
+            const files = e.dataTransfer.files;
+
+        if (files.length > 1) {
+            alert("Please drop only one CSV file.");
+            return;
+        }
+
+        if (!files[0].name.endsWith(".csv")) {
+            alert("Only CSV files are allowed.");
+            return;
+        }
+
+        fileInput.files = files;
+
+        document.getElementById("fileNameDisplay").textContent =  files[0].name + " (✓)";
+
+        });
+
+
+
+
+
+
+//1.1) Machine loading screen overlay show
+        function MTshowLoading() {
+
+            document.getElementById('MTloading').style.display = 'block';
+
+        }
+
+//1.2) Machine loading screen overlay stop
+        function MThideLoading() {
+
+            document.getElementById('MTloading').style.display = 'none';
+
+        }
+
+//2.1) Prediction loading screen overlay show
+        function PshowLoading() {
+
+            document.getElementById('Ploading').style.display = 'block';
+
+        }
+
+//2.2) Prediction loading screen overlay stop
+        function PhideLoading() {
+
+            document.getElementById('Ploading').style.display = 'none';
+
+        }
+ 
+//3.1)  loading screen overlay show
+        function showLoading() {
+
+            document.getElementById('loading').style.display = 'block';
+
+        }
+
+//3.2)  loading screen overlay stop
+        function hideLoading() {
+
+            document.getElementById('loading').style.display = 'none';
+
+        }
+
+        // Mapping for Item codes to names (based on the data processing)
+        const itemMapping = [
+            "Cake",
+            "Cake/Juice",
+            "Coffee",
+            "Cookie",
+            "Juice",
+            "Salad",
+            "Sandwich",
+            "Sandwich/Smoothie",
+            "Smoothie",
+            "Tea"
+        ];
+
+        const intToString = (value, mapping) => {
+            if (mapping == null) return value;
+            if (Array.isArray(mapping)) {
+                if (typeof value === 'number' && value > 0) {
+                    const index = value - 1;
+                    if (index >= 0 && index < mapping.length) {
+                        return mapping[index];
+                    }
+                }
+                return value;
+            }
+            if (typeof mapping === 'object') {
+                return mapping.hasOwnProperty(value) ? mapping[value] : value;
+            }
+            return value;
+        };
+
+        document.getElementById('PredictionBtn').addEventListener('click', async () => {
+
+            const file = document.getElementById('csvPicker').files[0];
+            if (!file) {
+
+                alert('Please select a CSV file');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('product_var_name', 'Item');
+            formData.append('date_var_name', 'Transaction Date');
+
+
+            try {
+                MTshowLoading();
+                const response = await fetch('https://ambatucode.vercel.app/train-model', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok) { 
+                    MThideLoading();
+
+                    throw new Error('API request failed');
+                    
+                }
+
+                
+                const train_data = await response.json();
+                
+
+                alert('Training completed successfully');
+                
+
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to train model. Check console for details.');
+            }finally{
+                MThideLoading();
+
+            }
+
+            try {
+                PshowLoading();
+                const response = await fetch('https://ambatucode.vercel.app/predict-recommendation', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                if (!response.ok){ 
+                    PhideLoading();
+
+                    throw new Error('API request failed');
+                    
+                }
+
+                
+                const result = await response.json();
+
+                
+                displayTable(result.recommendations);
+
+                
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to get predictions. Check console for details.');
+            }
+            finally{
+                PhideLoading();
+
+            }
+
+            // Automatically delete the models after prediction
+            try {
+                const response = await fetch('https://ambatucode.vercel.app/delete-models-dir', {
+                    method: 'POST'
+                });
+                if (!response.ok) throw new Error('API request failed');
+                console.log('Models directory deleted successfully.');
+            } catch (error) {
+                console.error('Error deleting models:', error);
+            }
+        });
+
+        function displayTable(data) {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            if (!Array.isArray(data) || data.length === 0) {
+                results.textContent = 'No predictions to display';
+                return;
+            }
+            const table = document.createElement('table');
+            table.style.borderCollapse = 'collapse';
+            table.style.width = '100%';
+            const header = table.insertRow();
+            Object.keys(data[0]).forEach(key => {
+                const th = document.createElement('th');
+                th.textContent = key;
+                th.style.border = '1px solid #ddd';
+                th.style.padding = '8px';
+                th.style.backgroundColor = '#f2f2f2';
+                header.appendChild(th);
+            });
+            data.forEach(row => {
+                const tr = table.insertRow();
+                Object.entries(row).forEach(([key, val]) => {
+                    const td = document.createElement('td');
+                    const displayVal = key === 'recommended_product' ? intToString(val, itemMapping) : val;
+                    td.textContent = displayVal;
+                    td.style.border = '1px solid #ddd';
+                    td.style.padding = '8px';
+                    tr.appendChild(td);
+                });
+            });
+            results.appendChild(table);
+        }
+
+    
+    </script>
+    </body>
+    </html>
