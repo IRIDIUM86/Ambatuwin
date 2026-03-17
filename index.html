@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CSV File Dropper</title>
+</head>
+<body>
+
+    <h2>Prediction of CSV Dataset</h2>
+    
+    <input type="file" id="csvPicker" accept=".csv">
+
+    <button id="PredictionBtn">Create Prediction</button>
+
+    <div id="results"></div>
+
+    <script>
+        document.getElementById('PredictionBtn').addEventListener('click', async () => {
+            const file = document.getElementById('csvPicker').files[0];
+            if (!file) {
+                alert('Please select a CSV file');
+                return;
+            }
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('product_var_name', 'Item');
+            formData.append('date_var_name', 'Transaction Date');
+
+            try {
+                const response = await fetch('https://ambatucode.vercel.app/train-model', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) throw new Error('API request failed');
+                const train_data = await response.json();
+                alert('Training completed successfully');
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to train model. Check console for details.');
+            }
+
+            try {
+                const response = await fetch('https://ambatucode.vercel.app/predict-recommendation', {
+                    method: 'POST',
+                    body: formData
+                });
+                if (!response.ok) throw new Error('API request failed');
+                const result = await response.json();
+                displayTable(result.recommendations);
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to get predictions. Check console for details.');
+            }
+        });
+
+        function displayTable(data) {
+            const results = document.getElementById('results');
+            results.innerHTML = '';
+            if (!Array.isArray(data) || data.length === 0) {
+                results.textContent = 'No predictions to display';
+                return;
+            }
+            const table = document.createElement('table');
+            table.style.borderCollapse = 'collapse';
+            table.style.width = '100%';
+            const header = table.insertRow();
+            Object.keys(data[0]).forEach(key => {
+                const th = document.createElement('th');
+                th.textContent = key;
+                th.style.border = '1px solid #ddd';
+                th.style.padding = '8px';
+                th.style.backgroundColor = '#f2f2f2';
+                header.appendChild(th);
+            });
+            data.forEach(row => {
+                const tr = table.insertRow();
+                Object.values(row).forEach(val => {
+                    const td = document.createElement('td');
+                    td.textContent = val;
+                    td.style.border = '1px solid #ddd';
+                    td.style.padding = '8px';
+                    tr.appendChild(td);
+                });
+            });
+            results.appendChild(table);
+        }
+    </script>
