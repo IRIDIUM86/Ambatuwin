@@ -1,1 +1,6 @@
-How are you?
+fastapi
+uvicorn
+pandas
+xgboost
+requests
+python-dotenv
